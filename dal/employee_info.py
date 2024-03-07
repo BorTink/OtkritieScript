@@ -1,3 +1,4 @@
+import schemas
 from connection import SqlitePool
 
 
@@ -54,3 +55,19 @@ class EmployeeInfo:
                 '684 Watermelon St, City20, Country20');
         """)
         cls.db.commit()
+
+    @classmethod
+    def get_employee_info_for_processing(cls, id):
+        cls.cur.execute(f"""
+            SELECT e.*, s.
+            FROM employee_info e
+            WHERE id = {id}
+            LIMIT 1
+        """)
+
+        employee = cls.cur.fetchone()
+
+        if employee:
+            return schemas.EmployeeInfo(**employee)
+        else:
+            return None
