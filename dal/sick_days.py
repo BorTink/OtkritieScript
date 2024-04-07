@@ -1,3 +1,4 @@
+import schemas
 from connection import SqlitePool
 
 
@@ -31,3 +32,15 @@ class SickDays:
             LIMIT 10;
         """)
         cls.db.commit()
+
+    @classmethod
+    def get_sick_days_for_processing(cls, employee_id):
+        cls.cur.execute(f"""
+            SELECT *
+            FROM sick_days
+            WHERE employee_id = {employee_id}
+        """)
+
+        sick_days = cls.cur.fetchall()
+
+        return [schemas.SickDays(**sick) for sick in sick_days]

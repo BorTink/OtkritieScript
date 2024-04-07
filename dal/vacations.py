@@ -1,5 +1,7 @@
 from connection import SqlitePool
 
+import schemas
+
 
 class Vacations:
     db, cur = SqlitePool.get_db_cur()
@@ -31,3 +33,15 @@ class Vacations:
         LIMIT 10;
         """)
         cls.db.commit()
+
+    @classmethod
+    def get_vacations_for_processing(cls, employee_id):
+        cls.cur.execute(f"""
+            SELECT *
+            FROM vacations
+            WHERE employee_id = {employee_id}
+        """)
+
+        vacations = cls.cur.fetchall()
+
+        return [schemas.Vacation(**vacation) for vacation in vacations]
