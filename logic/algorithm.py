@@ -4,6 +4,7 @@ from loguru import logger
 from tzwhere import tzwhere
 import pytz
 
+from geocodes import Geocodes
 import dal
 
 grades_dict = {
@@ -21,6 +22,10 @@ class Algorithm:
         self.ride = None
         self.employee_info = None
         self.errors = []
+        self.from_distance_to_registered = None
+        self.from_distance_to_actual_residence = None
+        self.to_distance_to_registered = None
+        self.to_distance_to_actual_residence = None
 
     def check_ride(self):
         rides_for_processing = dal.Rides.get_rides_for_processing()
@@ -42,11 +47,23 @@ class Algorithm:
                 self.validate_ride_time()
                 self.validate_ride_distance()  # TODO: Сделать систему перевода адреса в коорды и расчет расстояния
 
+                self.fill_distances()
                 if self.check_if_night_time():  # TODO: Сделать систему перевода адреса в коорды и расчет расстояния
-                    pass
-
+                    if self.check_if_from_home() and not self.check_if_to_airport_railway():
+                        logger.error('Подозрение на поездку из дома')
+                        self.errors.append('Подозрение на поездку из дома')
                 else:
-                    pass
+                    if self.check_if_from_home():
+                        logger.error('Подозрение на поездку из дома')
+                        self.errors.append('Подозрение на поездку из дома')
+                    elif self.check_if_to_home():
+                        logger.error('Подозрение на поездку до дома')
+                        self.errors.append('Подозрение на поездку до дома')
+                    else:
+                        if self.employee_info.grade < 3 and (
+                                self.check_if_to_airport_railway or self.check_if_from_airport_railway):
+                            logger.error('Неразрешенный трансфер')
+                            self.errors.append('Неразрешенный трансфер')
 
             except Exception as exc:
                 print(exc)
@@ -119,9 +136,45 @@ class Algorithm:
     def validate_ride_distance(self):
         pass  # Заглушка, т.к. нужно реализовать систему перевода адреса в координаты и подсчет расстояния
 
+    def fill_distances(self):
+        geocodes = Geocodes()
+        registered_coords = geocodes.get_coords_from_address(self.employee_info.registered_address)
+        actual_residence_coords = geocodes.get_coords_from_address(self.employee_info.actual_residence_address)
+
+        self.from_distance_to_registered = geocodes.get_distance(
+            self.ride.coordinates_from, registered_coords
+        )
+        self.from_distance_to_actual_residence = geocodes.get_distance(
+            self.ride.coordinates_from, actual_residence_coords
+        )
+        self.to_distance_to_registered = geocodes.get_distance(
+            self.ride.coordinates_to, registered_coords
+        )
+        self.to_distance_to_actual_residence = geocodes.get_distance(
+            self.ride.coordinates_to, actual_residence_coords
+        )
+
     def check_if_night_time(self):
         if (self.ride.request_time.hour in range(23, 5) or
                 self.ride.request_time.hour == 5 and self.ride.request_time.minute in range(0, 30)):
             return True
         else:
+            return False
+
+    def check_if_from_home(self):
+        dist_to_home = min(self.from_distance_to_registered, self.from_distance_to_actual_residence)
+        if dist_to_home < 500:
+            logger.warning(f'Расстояние начальной точки до дома - {dist_to_home}. Подозрение на поездку из дома.')
+            return True
+        else:
+            logger.info(f'Расстояние начальной точки до дома - {dist_to_home}. Поездка не из дома.')
+            return False
+
+    def check_if_to_home(self):
+        dist_to_home = min(self.to_distance_to_registered, self.to_distance_to_actual_residence)
+        if dist_to_home < 500:
+            logger.warning(f'Расстояние конечной точки до дома - {dist_to_home}. Подозрение на поездку до дома.')
+            return True
+        else:
+            logger.info(f'Расстояние конечной точки до дома - {dist_to_home}. Поездка не до дома.')
             return False
