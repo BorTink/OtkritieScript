@@ -7,9 +7,13 @@ class Rides:
 
     @classmethod
     def create_rides(cls):
+        # Этот execute, где DROP TABLE можно убрать во время тестов, чтобы данные,
+        # введеные в БД сохранялись при перезапуске программы
         cls.cur.execute("""
                 DROP TABLE IF EXISTS rides
             """)
+        # Сюда тогда нужно будет дописать CREATE TABLE IF NOT EXISTS вместо CREATE TABLE
+        # Аналогично с каждой таблицей
         cls.cur.execute("""
                 CREATE TABLE rides(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

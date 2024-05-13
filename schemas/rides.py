@@ -4,7 +4,7 @@ from datetime import date, time
 
 class Ride(BaseModel):
     id: int
-    date: date
+    date: date  # Ночной развоз указан
     request_time: time
     arriving_time: time
     order_phone: str
@@ -26,7 +26,7 @@ class Ride(BaseModel):
     coordinates_from: str
     coordinates_stay: str
     coordinates_to: str
-    fare: str
+    fare: str  # Почему-то минус иногда
     commentary: str
     ride_cost: int
     waiting_cost: int
@@ -34,3 +34,5 @@ class Ride(BaseModel):
     waiting_time_stay: int
     ride_goal: str
     cost_of_toil_road: int
+
+

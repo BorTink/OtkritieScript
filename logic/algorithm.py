@@ -61,6 +61,7 @@ class Algorithm:
         self.to_distance_to_actual_residence = None
 
     def check_ride(self):
+        self.errors = []
         rides_for_processing = dal.Rides.get_rides_for_processing()
 
         for ride in rides_for_processing:
@@ -78,10 +79,10 @@ class Algorithm:
                 self.check_remote_work()  # TODO: сделать таблицу
                 self.check_wait_time()
                 self.validate_ride_time()
-                self.validate_ride_distance()  # TODO: Сделать систему перевода адреса в коорды и расчет расстояния
+                self.validate_ride_distance()
 
                 self.fill_distances()
-                if self.check_if_night_time():  # TODO: Сделать систему перевода адреса в коорды и расчет расстояния
+                if self.check_if_night_time():
                     if self.check_if_from_home() and not self.check_if_to_airport_railway():
                         logger.error('Подозрение на поездку из дома')
                         self.errors.append('Подозрение на поездку из дома')
@@ -99,6 +100,7 @@ class Algorithm:
                             self.errors.append('Неразрешенный трансфер')
 
             except Exception as exc:
+                logger.error(f'При обработке поездки с id = {self.ride.ride_id} произошла ошибка - {exc}')
                 print(exc)
 
     def fix_timezone(self):
@@ -127,7 +129,11 @@ class Algorithm:
             self.errors.append('Заказ другому человеку')
 
     def check_employee_status(self):
-        if self.employee_info.employment_end_date < datetime.datetime.now():
+        if (
+                self.employee_info.employment_end_date
+                and
+                self.employee_info.employment_end_date < self.ride.date
+        ):
             logger.error(f'Сотрудник уже не работает в компании')
             self.errors.append('Уволившийся сотрудник')
 
@@ -188,7 +194,7 @@ class Algorithm:
         )
 
     def check_if_night_time(self):
-        if (self.ride.request_time.hour in range(23, 5) or
+        if (self.ride.request_time.hour not in range(22, 4, -1) or
                 self.ride.request_time.hour == 5 and self.ride.request_time.minute in range(0, 30)):
             return True
         else:
@@ -211,3 +217,9 @@ class Algorithm:
         else:
             logger.info(f'Расстояние конечной точки до дома - {dist_to_home}. Поездка не до дома.')
             return False
+
+    def check_if_to_airport_railway(self):
+        pass  # TODO: собрать список координат аэропортов / ЖД вокзалов
+
+    def check_if_from_airport_railway(self):
+        pass  # TODO: собрать список координат аэропортов / ЖД вокзалов
