@@ -12,10 +12,8 @@ class Rides:
         cls.cur.execute("""
                 DROP TABLE IF EXISTS rides
             """)
-        # Сюда тогда нужно будет дописать CREATE TABLE IF NOT EXISTS вместо CREATE TABLE
-        # Аналогично с каждой таблицей
         cls.cur.execute("""
-                CREATE TABLE rides(
+                CREATE TABLE IF NOT EXISTS rides(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 status TEXT,
                 date DATE,
@@ -54,7 +52,8 @@ class Rides:
                 cost_of_toil_road INTEGER
                 )
             """)
-
+        # Заполняем таблицу случайно сгенерированными данными о поездках.
+        # Для тестов необходимо подгонять под результат
         cls.cur.execute("""
                 INSERT INTO rides (
                     status, date, request_time, arriving_time, order_phone, order_method, day_of_ride, username, ride_group, 
@@ -119,6 +118,7 @@ class Rides:
 
     @classmethod
     def get_rides_for_processing(cls):
+        # Получаем все поездки с пометкой "PROCESSING" для обработки
         cls.cur.execute("""
             SELECT *
             FROM rides

@@ -1,12 +1,13 @@
 import datetime
 
-from loguru import logger
-from tzwhere import tzwhere
-import pytz
+from loguru import logger  # Используем для логов эту библиотеку из-за красоты
+from tzwhere import tzwhere  # Библиотека для определения часового пояса по координатам
+import pytz  # Библиотека для преобразования часового пояса
 
 from geocodes import Geocodes
 import dal
 
+# Словарь точного соответствия полей в реальном реестре поездок с полями в таблице rides в БД
 a = {
     'Дата заказа': 'date',  # Ночной развоз указан
     'Время заказа': 'request_time',
@@ -40,6 +41,8 @@ a = {
     'Стоимость платной дороги': 'cost_of_toil_road'
 }
 
+
+# Моковый словарь тарифа такси к грейдам для тестов
 grades_dict = {
     'Эконом': 1,
     'Комфорт': 2,
@@ -64,29 +67,39 @@ class Algorithm:
         self.errors = []
         rides_for_processing = dal.Rides.get_rides_for_processing()
 
+        # Получаем поездки и рассматриваем каждую по отдельности
         for ride in rides_for_processing:
             logger.info(f'Рассматриваем поездку с id = {self.ride.ride_id}')
             try:
+                # Далее функции будут идти в соответствии с блок схемой алгоритма,
+                # где каждая проверка - отдельная функция
                 self.ride = ride
-                self.fix_timezone()
-                self.fix_assistant()
-                self.get_employee_info()
-                self.check_passenger_user()
-                self.check_employee_status()
-                self.validate_grade()
-                self.check_vacation()
-                self.check_sick_days()
-                self.check_remote_work()  # TODO: сделать таблицу
-                self.check_wait_time()
-                self.validate_ride_time()
-                self.validate_ride_distance()
+                self.fix_timezone()  # Изменяем таймзону с МСК на местную по координатам
+                self.fix_assistant()  # Изменяем имя заказчика на имя пассажира, если заказывал ассистент
+                self.get_employee_info()  # Получаем инфу о сотруднике
 
-                self.fill_distances()
-                if self.check_if_night_time():
+                # Далее идут проверки на то, что:
+                self.check_passenger_user()  # Пассажир и заказчик совпадают
+                self.check_employee_status()  # Работал ли человек в компании во время поездки
+                self.validate_grade()  # Такси заказано по грейду
+                self.check_vacation()  # Поездка не во время отпуска
+                self.check_sick_days()  # Поездка не во время больничного
+                # Таблица с удаленной работой не составлена, т.к. не ясен ее формат
+                # TODO: сделать таблицу
+                self.check_remote_work()  # Поездка не во время удаленки
+                self.check_wait_time()  # Есть ли платное ожидание
+                self.validate_ride_time()  # Дольше ли поездка 1.5 часов
+                self.validate_ride_distance()  # Дальше ли она 20 км за МКАД
+
+                self.fill_distances()  # Здесь мы заполняем расстояния
+                # от точки старта/завершения поездки до дома/аэропорта/жд вокзала
+                if self.check_if_night_time():  # Если ночное время, то проверяем на поездку ИЗ дома НЕ в аэропорт.
+                    # Остальные будут валидны
                     if self.check_if_from_home() and not self.check_if_to_airport_railway():
                         logger.error('Подозрение на поездку из дома')
                         self.errors.append('Подозрение на поездку из дома')
                 else:
+                    # Отдельно проверка на домой/из дома
                     if self.check_if_from_home():
                         logger.error('Подозрение на поездку из дома')
                         self.errors.append('Подозрение на поездку из дома')
@@ -94,22 +107,26 @@ class Algorithm:
                         logger.error('Подозрение на поездку до дома')
                         self.errors.append('Подозрение на поездку до дома')
                     else:
+                        # Поездка не по грейду в/из аэропорта
                         if self.employee_info.grade < 3 and (
                                 self.check_if_to_airport_railway or self.check_if_from_airport_railway):
                             logger.error('Неразрешенный трансфер')
                             self.errors.append('Неразрешенный трансфер')
 
             except Exception as exc:
+                # Это требуется для некоторых начальных функций, при определенном результате которых не возможна дальнейшая проверка
                 logger.error(f'При обработке поездки с id = {self.ride.ride_id} произошла ошибка - {exc}')
                 print(exc)
 
     def fix_timezone(self):
+        # Находим таймзону по координатам и переводим время в нее
         ride_coords = self.ride.coordinates_to.split(', ')
         tz = tzwhere.tzwhere().tzNameAt(latitude=ride_coords[0], longitude=ride_coords[1])
         self.ride.request_time = self.ride.request_time.astimezone(pytz.timezone(tz))
         self.ride.arriving_time = self.ride.arriving_time.astimezone(pytz.timezone(tz))
 
     def fix_assistant(self):
+        # Если заказывал ассистент, то заменяем имя пассажира на заказчика
         if self.ride.passenger_pd.split()[1] == 'A':
             logger.info('Данную поездку заказывал ассистент. Заменяем того, кому заказали, на имя заказчика')
             self.ride.passenger_pd = self.ride.username
@@ -129,6 +146,8 @@ class Algorithm:
             self.errors.append('Заказ другому человеку')
 
     def check_employee_status(self):
+        # Если employment_end_date отсутствует, то значит сотрудник до сих пор числится в компании,
+        # поэтому проверка двойная
         if (
                 self.employee_info.employment_end_date
                 and
@@ -160,7 +179,7 @@ class Algorithm:
                 self.errors.append('Во время болезни')
 
     def check_remote_work(self):
-        pass  # Заглушка, т.к. забыл создать таблицу
+        pass  # Заглушка, т.к. нет таблицы
 
     def check_wait_time(self):
         if self.ride.waiting_cost:
@@ -173,27 +192,34 @@ class Algorithm:
             self.errors.append('Слишком долгая')
 
     def validate_ride_distance(self):
-        pass  # Заглушка, т.к. нужно реализовать систему перевода адреса в координаты и подсчет расстояния
+        pass  # Заглушка, т.к. пока не ясно, как найти расстояние от МКАД.
+        # TODO: убрать заглушку по МКАДу
 
     def fill_distances(self):
+        # Обращаемся к geocodes.py и получаем координаты места жительства и прописки.
         geocodes = Geocodes()
         registered_coords = geocodes.get_coords_from_address(self.employee_info.registered_address)
         actual_residence_coords = geocodes.get_coords_from_address(self.employee_info.actual_residence_address)
 
+        # Расстояние от ТОЧКИ СТАРТА до МЕСТА ПРОПИСКИ
         self.from_distance_to_registered = geocodes.get_distance(
             self.ride.coordinates_from, registered_coords
         )
+        # Расстояние от ТОЧКИ СТАРТА до МЕСТА ЖИТЕЛЬСТВА
         self.from_distance_to_actual_residence = geocodes.get_distance(
             self.ride.coordinates_from, actual_residence_coords
         )
+        # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ПРОПИСКИ
         self.to_distance_to_registered = geocodes.get_distance(
             self.ride.coordinates_to, registered_coords
         )
+        # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ЖИТЕЛЬСТВА
         self.to_distance_to_actual_residence = geocodes.get_distance(
             self.ride.coordinates_to, actual_residence_coords
         )
 
     def check_if_night_time(self):
+        # Ночное время - это время с 22 до 5:30.
         if (self.ride.request_time.hour not in range(22, 4, -1) or
                 self.ride.request_time.hour == 5 and self.ride.request_time.minute in range(0, 30)):
             return True
@@ -201,6 +227,7 @@ class Algorithm:
             return False
 
     def check_if_from_home(self):
+        # Проверка на поездку из МЕСТА ЖИТЕЛЬСТВА/ПРОПИСКИ
         dist_to_home = min(self.from_distance_to_registered, self.from_distance_to_actual_residence)
         if dist_to_home < 500:
             logger.warning(f'Расстояние начальной точки до дома - {dist_to_home}. Подозрение на поездку из дома.')
@@ -210,6 +237,7 @@ class Algorithm:
             return False
 
     def check_if_to_home(self):
+        # Проверка на поездку до МЕСТА ЖИТЕЛЬСТВА/ПРОПИСКИ
         dist_to_home = min(self.to_distance_to_registered, self.to_distance_to_actual_residence)
         if dist_to_home < 500:
             logger.warning(f'Расстояние конечной точки до дома - {dist_to_home}. Подозрение на поездку до дома.')
@@ -219,6 +247,7 @@ class Algorithm:
             return False
 
     def check_if_to_airport_railway(self):
+        # Заглушка, потому что список аэропортов и ЖД находится в работе
         pass  # TODO: собрать список координат аэропортов / ЖД вокзалов
 
     def check_if_from_airport_railway(self):

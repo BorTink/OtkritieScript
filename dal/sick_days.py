@@ -7,6 +7,8 @@ class SickDays:
 
     @classmethod
     def create_sick_days(cls):
+        # Этот execute, где DROP TABLE можно убрать во время тестов, чтобы данные,
+        # введеные в БД сохранялись при перезапуске программы
         cls.cur.execute("""
             DROP TABLE IF EXISTS sick_days
         """)
@@ -19,6 +21,8 @@ class SickDays:
                 FOREIGN KEY (employee_id) REFERENCES employee_info(id)
             );
         """)
+        # Заполняем таблицу случайно сгенерированными данными о больничных.
+        # Для тестов необходимо подгонять под результат
         cls.cur.execute("""
             INSERT INTO sick_days (employee_id, start_date, end_date)
             SELECT 
@@ -35,6 +39,7 @@ class SickDays:
 
     @classmethod
     def get_sick_days_for_processing(cls, employee_id):
+        # Получаем все больничные сотрудника по его id
         cls.cur.execute(f"""
             SELECT *
             FROM sick_days

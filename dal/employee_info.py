@@ -3,10 +3,12 @@ from connection import SqlitePool
 
 
 class EmployeeInfo:
-    db, cur = SqlitePool.get_db_cur()
+    db, cur = SqlitePool.get_db_cur()  # Получаем переменные для БД
 
     @classmethod
     def create_employee_info(cls):
+        # Этот execute, где DROP TABLE можно убрать во время тестов, чтобы данные,
+        # введеные в БД сохранялись при перезапуске программы
         cls.cur.execute("""
             DROP TABLE IF EXISTS employee_info
         """)
@@ -22,6 +24,8 @@ class EmployeeInfo:
             actual_residence_address TEXT
         )
         """)
+        # Заполняем таблицу случайно сгенерированными данными о сотруднике.
+        # Для тестов необходимо подгонять под результат
         cls.cur.execute("""
             INSERT INTO employee_info (
                 employment_status, 
@@ -58,6 +62,7 @@ class EmployeeInfo:
 
     @classmethod
     def get_employee_info_for_processing(cls, id):
+        # Получаем информацию о сотруднике по id
         cls.cur.execute(f"""
             SELECT *
             FROM employee_info
@@ -68,6 +73,7 @@ class EmployeeInfo:
         employee = cls.cur.fetchone()
 
         if employee:
+            # Возвращаем информацию в виде схемы
             return schemas.EmployeeInfo(**employee)
         else:
             return None
