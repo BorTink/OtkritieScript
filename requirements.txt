@@ -1,0 +1,5 @@
+geopy~=2.4.1
+pytz~=2024.1
+loguru~=0.7.2
+tzwhere~=3.0.3
+pydantic~=1.10.0
