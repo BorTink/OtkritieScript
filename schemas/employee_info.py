@@ -3,11 +3,15 @@ from typing import Optional
 
 
 class EmployeeInfo(BaseModel):
-    id: int
+    id: int # "АТД_27.05.2024.xlsx" -> второй столбец "Табельный номер".
+    # Также айди сотрудника есть в таблице с грейдами "АТД_ШР_Грейды.xlsm" -> столбик M (пятый) "Табельный номер"
     employment_status: str
-    employment_start_date: str
-    employment_end_date: Optional[str] = None
-    grade: int
-    remote_work_days: str
-    registered_address: str
-    actual_residence_address: str
+    employment_start_date: str  # "АТД_27.05.2024.xlsx" -> столбец K (11) "ДатаПриемаНаРабот". формат: дд-мм-гггг
+    employment_end_date: Optional[str] = None # "АТД_27.05.2024.xlsx" -> столбец L (12) "Дата увольнения". формат неясен
+    grade: int # "АТД_ШР_Грейды.xlsm" -> стобец N (шестой) "Грейд"
+    remote_work_days: str  # В таблицах нет, возможно будет в шине (если не будет, то не учитываем)
+    registered_address: str  # "АТД_27.05.2024.xlsx" -> столбец Q (17) "Адрес регистрации"
+    # Формат адреса: {6-ти значный почтовый индекс}, {Субъект}, {Город}, {Адрес}, {Квартира (может не быть)}
+    # Есть аномалии - иногда точка в неправильных местах стоит
+    actual_residence_address: str  # "АТД_27.05.2024.xlsx" -> столбец R (18) "Адрес проживания"
+    # Формат аналогичный
