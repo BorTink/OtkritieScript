@@ -252,3 +252,16 @@ class Algorithm:  # TODO: Добавить праздники и выходны�
 
     def check_if_from_airport_railway(self):
         pass  # TODO: собрать список координат аэропортов / ЖД вокзалов
+
+    def check_if_holiday(self):
+        holidays_permanent = [datetime.date(datetime.date.today().year, i[0], i[1]) for i in [
+            (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+            (2, 23), (3, 8), (5, 1), (5, 9), (6, 12), (11, 4)
+        ]]
+        holidays_2024_only = [datetime.date(2024, i[0], i[1]) for i in [
+            (4, 29), (4, 30), (5, 10), (12, 30), (12, 31)
+        ]]
+
+        if self.ride.date in holidays_permanent + holidays_2024_only:
+            logger.error('Дата поездки совпадает с датой одного из государственных праздников')
+            self.errors.append('В государственный праздник')
