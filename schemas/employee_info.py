@@ -5,7 +5,6 @@ from typing import Optional
 class EmployeeInfo(BaseModel):
     id: int # "АТД_27.05.2024.xlsx" -> второй столбец "Табельный номер".
     # Также айди сотрудника есть в таблице с грейдами "АТД_ШР_Грейды.xlsm" -> столбик M (пятый) "Табельный номер"
-    employment_status: str
     employment_start_date: str  # "АТД_27.05.2024.xlsx" -> столбец K (11) "ДатаПриемаНаРабот". формат: дд-мм-гггг
     employment_end_date: Optional[str] = None # "АТД_27.05.2024.xlsx" -> столбец L (12) "Дата увольнения". формат неясен
     grade: int # "АТД_ШР_Грейды.xlsm" -> стобец N (шестой) "Грейд"

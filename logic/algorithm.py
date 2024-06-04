@@ -53,7 +53,7 @@ grades_dict = {
 }
 
 
-class Algorithm:  # TODO: Добавить праздники и выходные в подозрение
+class Algorithm:  # TODO: Добавить выходные в подозрение
     def __init__(self):
         self.ride = None
         self.employee_info = None

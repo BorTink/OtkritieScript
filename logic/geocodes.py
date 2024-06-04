@@ -16,3 +16,8 @@ class Geocodes:
     def get_distance(coords_1, coords_2):
         distance = geodesic(coords_1, coords_2).m
         return distance  # в метрах
+
+
+a = Geocodes().get_coords_from_address('г. Балашов, Саратовская обл., ул. Нижняя, д. 1')
+
+print(a)
