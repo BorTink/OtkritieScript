@@ -1,6 +1,9 @@
 import csv
 
+from loguru import logger
+
 import schemas
+from utils import convert_xlsx_to_csv
 
 
 class Rides:
@@ -40,8 +43,11 @@ class Rides:
     @classmethod
     def get_rides_for_processing(cls):
         # Получаем все поездки для обработки
-        with open('Поездки.xlsx', newline='') as csvfile:  # TODO: Поменять название
-            reader = csv.DictReader(csvfile, restval=None, restkey=None)
+        logger.info('Получаем таблицу поездок')
+
+        convert_xlsx_to_csv('Поездки')
+        with open('Поездки.csv', newline='', encoding='1251') as csvfile:  # TODO: Поменять название
+            reader = csv.DictReader(csvfile, restval=None, delimiter=',')
             res = []
             new_row = {}
             for row in reader:
@@ -50,4 +56,5 @@ class Rides:
                 # Добавляем в итоговый список поездок схему поездки
                 res.append(schemas.Ride(**new_row))
 
+            logger.info('Таблица поездок была получена')
             return res

@@ -11,3 +11,12 @@ for i in airports:
     content += f'{i[0]}, {i[1]}\n'
 airports_new.write(content)
 """
+
+import pandas as pd
+
+
+def convert_xlsx_to_csv(filename):
+    excel_file = f'{filename}.xlsx'
+    csv_file = f'{filename}.csv'
+    df = pd.read_excel(excel_file)
+    df.to_csv(csv_file, index=False, encoding='1251', sep=',')

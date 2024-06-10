@@ -1,6 +1,9 @@
 import csv
 
+from loguru import logger
+
 import schemas
+from utils import convert_xlsx_to_csv
 
 
 class EmployeeInfo:
@@ -17,7 +20,10 @@ class EmployeeInfo:
     @classmethod
     def get_employee_info_for_processing(cls, id):
         # Получаем информацию о сотруднике по id
-        with open('АТД_27.05.2024.xlsx', newline='') as csvfile:  # TODO: Поменять название
+        logger.info('Получаем таблицу сотрудников')
+
+        convert_xlsx_to_csv('АТД_27.05.2024')
+        with open('АТД_27.05.2024.csv', newline='', encoding='1251') as csvfile:  # TODO: Поменять название
             reader = csv.DictReader(csvfile, restval=None, restkey=None)
             new_row = {}
             for row in reader:
@@ -26,6 +32,9 @@ class EmployeeInfo:
                         new_row[cls.header_names[key]] = row[key]
 
                     # Возвращаем информацию в виде схемы при наличии сотрудника с таким Табельным номером
+                    logger.info('Сотрудник был получен')
                     return schemas.EmployeeInfo(**new_row)
+
+            logger.error('Сотрудник не был найден')
 
             return None

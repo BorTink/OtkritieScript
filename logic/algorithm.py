@@ -4,7 +4,7 @@ from loguru import logger  # Используем для логов эту би�
 from tzwhere import tzwhere  # Библиотека для определения часового пояса по координатам
 import pytz  # Библиотека для преобразования часового пояса
 
-from geocodes import Geocodes
+from .geocodes import Geocodes
 import dal
 
 # Моковый словарь тарифа такси к грейдам для тестов
@@ -28,13 +28,15 @@ class Algorithm:  # TODO: Добавить выходные в подозрен�
         self.to_distance_to_registered = None
         self.to_distance_to_actual_residence = None
 
-    def check_ride(self):
-        self.errors = []
+    def check_rides(self):
         rides_for_processing = dal.Rides.get_rides_for_processing()
+        result = []
+        verdicts = []
 
         # Получаем поездки и рассматриваем каждую по отдельности
         for ride in rides_for_processing:
-            logger.info(f'Рассматриваем поездку с id = {self.ride.ride_id}')
+            logger.info(f'Рассматриваем поездку с id = {ride.ride_id}')
+            self.errors = []
             try:
                 # Далее функции будут идти в соответствии с блок схемой алгоритма,
                 # где каждая проверка - отдельная функция
@@ -84,8 +86,13 @@ class Algorithm:  # TODO: Добавить выходные в подозрен�
                 # при определенном результате которых не возможна дальнейшая проверка
                 logger.error(f'При обработке поездки с id = {self.ride.ride_id} произошла ошибка - {exc}')
                 print(exc)
+            result.append(self.errors)
+            if self.errors:
+                verdicts.append('НЕВАЛИДНАЯ')
+            else:
+                verdicts.append('ВАЛИДНАЯ')
 
-        return
+        return result, verdicts
 
     def fix_timezone(self):
         # Находим таймзону по координатам и переводим время в нее
@@ -162,22 +169,26 @@ class Algorithm:  # TODO: Добавить выходные в подозрен�
         registered_coords = geocodes.get_coords_from_address(self.employee_info.registered_address)
         actual_residence_coords = geocodes.get_coords_from_address(self.employee_info.actual_residence_address)
 
-        # Расстояние от ТОЧКИ СТАРТА до МЕСТА ПРОПИСКИ
-        self.from_distance_to_registered = geocodes.get_distance(
-            self.ride.coordinates_from, registered_coords
-        )
-        # Расстояние от ТОЧКИ СТАРТА до МЕСТА ЖИТЕЛЬСТВА
-        self.from_distance_to_actual_residence = geocodes.get_distance(
-            self.ride.coordinates_from, actual_residence_coords
-        )
-        # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ПРОПИСКИ
-        self.to_distance_to_registered = geocodes.get_distance(
-            self.ride.coordinates_to, registered_coords
-        )
-        # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ЖИТЕЛЬСТВА
-        self.to_distance_to_actual_residence = geocodes.get_distance(
-            self.ride.coordinates_to, actual_residence_coords
-        )
+        if registered_coords:
+            # Расстояние от ТОЧКИ СТАРТА до МЕСТА ПРОПИСКИ
+            self.from_distance_to_registered = geocodes.get_distance(
+                self.ride.coordinates_from, registered_coords
+            )
+            # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ПРОПИСКИ
+            self.to_distance_to_registered = geocodes.get_distance(
+                self.ride.coordinates_to, registered_coords
+            )
+
+        if actual_residence_coords:
+            # Расстояние от ТОЧКИ СТАРТА до МЕСТА ЖИТЕЛЬСТВА
+            self.from_distance_to_actual_residence = geocodes.get_distance(
+                self.ride.coordinates_from, actual_residence_coords
+            )
+
+            # Расстояние от КОНЕЧНОЙ ТОЧКИ до МЕСТА ЖИТЕЛЬСТВА
+            self.to_distance_to_actual_residence = geocodes.get_distance(
+                self.ride.coordinates_to, actual_residence_coords
+            )
 
     def check_if_night_time(self):
         # Ночное время - это время с 22 до 5:30.

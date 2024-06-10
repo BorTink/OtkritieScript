@@ -3,7 +3,6 @@ from datetime import date, time
 
 
 class Ride(BaseModel):
-    id: int
     date: date  # Ночной развоз указан
     request_time: time
     arriving_time: time

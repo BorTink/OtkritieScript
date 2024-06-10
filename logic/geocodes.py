@@ -10,14 +10,13 @@ class Geocodes:
 
     def get_coords_from_address(self, address):
         coords = self.geocode(address)
-        return coords.latitude, coords.longitude
+        if coords:
+            return coords.latitude, coords.longitude
+        else:
+            return None, None
 
     @staticmethod
     def get_distance(coords_1, coords_2):
         distance = geodesic(coords_1, coords_2).m
         return distance  # в метрах
 
-
-a = Geocodes().get_coords_from_address('г. Балашов, Саратовская обл., ул. Нижняя, д. 1')
-
-print(a)

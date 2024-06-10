@@ -1,6 +1,9 @@
 import csv
 
+from loguru import logger
+
 import schemas
+from utils import convert_xlsx_to_csv
 
 
 class Absences:
@@ -13,7 +16,11 @@ class Absences:
     @classmethod
     def get_absense_periods_for_processing(cls, id):
         # Получаем информацию о сотруднике по id
-        with open('Отсутствия АТД_{Месяц с загл. буквы} {год}.xlsx', newline='') as csvfile:  # TODO: Поменять название
+        logger.info('Получаем таблицу отсутствия')
+
+        convert_xlsx_to_csv('Отсутствия АТД_{Месяц с загл. буквы} {год}')
+        with open('Отсутствия АТД_{Месяц с загл. буквы} {год}.csv', newline='', encoding='1251') as csvfile:
+            # TODO: Поменять название
             reader = csv.DictReader(csvfile, restval=None, restkey=None)
             res = []
             new_row = {}
@@ -24,5 +31,7 @@ class Absences:
 
                     # Возвращаем информацию в виде схемы при наличии сотрудника с таким Табельным номером
                     res.append(schemas.Absence(**new_row))
+
+            logger.info('Отсутствия были обработаны')
 
             return res
