@@ -97,9 +97,11 @@ class Algorithm:  # TODO: Добавить выходные в подозрен�
     def fix_timezone(self):
         # Находим таймзону по координатам и переводим время в нее
         ride_coords = self.ride.coordinates_to.split(', ')
-        tz = tzwhere.tzwhere().tzNameAt(latitude=ride_coords[0], longitude=ride_coords[1])
-        self.ride.request_time = self.ride.request_time.astimezone(pytz.timezone(tz))
-        self.ride.arriving_time = self.ride.arriving_time.astimezone(pytz.timezone(tz))
+        tz = tzwhere.tzwhere().tzNameAt(latitude=float(ride_coords[0]), longitude=float(ride_coords[1]))
+        request_time_dt = datetime.datetime.combine(datetime.datetime.now(), self.ride.request_time)
+        arriving_time_dt = datetime.datetime.combine(datetime.datetime.now(), self.ride.arriving_time)
+        self.ride.request_time = request_time_dt.astimezone(pytz.timezone(tz))
+        self.ride.arriving_time = arriving_time_dt.astimezone(pytz.timezone(tz))
 
     def fix_assistant(self):
         # Если заказывал ассистент, то заменяем имя пассажира на заказчика
