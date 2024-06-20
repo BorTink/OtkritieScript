@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 from datetime import date, time
 
@@ -28,9 +30,9 @@ class Ride(BaseModel):
     fare: str  # Почему-то минус иногда
     commentary: str
     ride_cost: int
-    waiting_cost: int
-    waiting_time_from: int
-    waiting_time_stay: int
+    waiting_cost: Optional[int]
+    waiting_time_from: Optional[int]
+    waiting_time_stay: Optional[int]
     ride_goal: str
     cost_of_toil_road: int
 
